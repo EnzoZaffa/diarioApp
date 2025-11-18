@@ -1,6 +1,6 @@
 import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Alert, Button, Image, TextInput, View } from "react-native";
 import { supabase } from "../src/lib/supabase";
 
@@ -9,6 +9,17 @@ export default function NewEntry() {
   const [content, setContent] = useState("");
   const [media, setMedia] = useState<string | null>(null);
   const router = useRouter();
+
+  // ---------- PERMISSÃO PARA ACESSAR A GALERIA ----------
+  useEffect(() => {
+    (async () => {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== "granted") {
+        Alert.alert("Permissão necessária", "Você precisa permitir acesso à galeria.");
+      }
+    })();
+  }, []);
+  // -------------------------------------------------------
 
   async function pickImage() {
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -22,7 +33,6 @@ export default function NewEntry() {
       const filePath = `${Date.now()}.${ext}`;
 
       try {
-        // pega o blob
         const response = await fetch(file.uri);
         const blob = await response.blob();
 
@@ -34,8 +44,7 @@ export default function NewEntry() {
           Alert.alert("Erro", uploadError.message);
         } else {
           const { data } = supabase.storage.from("media").getPublicUrl(filePath);
-          console.log("URL pública:", data.publicUrl);
-          setMedia(data.publicUrl); // salva a URL no estado
+          setMedia(data.publicUrl); // salva a URL
         }
       } catch (e: any) {
         Alert.alert("Erro ao carregar imagem", e.message);
@@ -60,6 +69,7 @@ export default function NewEntry() {
   return (
     <View style={{ flex: 1, padding: 20 }}>
       <TextInput placeholder="Título" value={title} onChangeText={setTitle} />
+
       <TextInput
         placeholder="Conteúdo"
         value={content}
